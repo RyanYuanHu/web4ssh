@@ -1,0 +1,111 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <title>web4ssh: upload </title>
+        <link rel="stylesheet" href="/css/bootstrap.css" type="text/css">
+        <link rel="stylesheet" href="/css/common.css" type="text/css">
+        <script src="/js/jquery.js"></script>
+        <script src="/jquery-ui/jquery-ui.js" type="text/javascript"></script>
+        <script src="/js/popper.js"></script>
+        <script src="/js/bootstrap.js"></script>
+    </head>
+    <body onload="gogogo()">
+        <script>
+        ip = "";
+        port = "";
+        username="";
+        password="";
+        path="";
+        content="";
+        fileid="";
+        sentlen=0;
+        
+        CONTENT_WINDOW_SIZE = 512;
+        
+        function gogogo(){
+            $("#uploadbtn").click(function upload_clicked(event){
+                ip   = $("#ip").val();
+                port = $("#port").val();
+                username = $("#username").val();
+                password = $("#password").val();
+                path = $("#path").val();
+                
+                content = $("#Text1").val().replace(/\r\n/gm, "\n");
+                sentlen = 0;
+                
+                console.log("len=" + content.length);
+                console.log(content);
+                
+                $.ajax({
+                    url: "/v1/upload/create",
+                    contentType: "application/json; charset=utf-8"
+                }).done(function(r){
+                    if(r.resultcode==0){
+                        fileid = r.fid;
+                        setTimeout(upload_transport, 0);
+                    }else{
+                        alert(r.message);
+                    }
+                });
+            });
+        }
+        
+        function upload_transport(){
+            if(sentlen < content.length){
+                p = sentlen;
+                l = Math.min(content.length - sentlen, CONTENT_WINDOW_SIZE);
+                c = content.substr(p, l);
+                
+                c = encodeURI(c);
+                c = c.replace(/\+/g, "%2B");
+                c = c.replace(/\#/g, "%23");
+                c = c.replace(/\&/g, "%26");
+                
+                urlstring = "/v1/upload/transport?fid=" + encodeURI(fileid) + "&pos=" + encodeURI(p) + "&len=" + encodeURI(l) + "&content=" + c;
+                $.ajax({
+                    url: urlstring,
+                    contentType: "application/json; charset=utf-8"
+                }).done(function(r){
+                    if(r.resultcode==0){
+                        sentlen += l;
+                        console.log("sent:" + sentlen);
+                        setTimeout(upload_transport, 0);
+                    }else{
+                        alert(r.message);
+                    }
+                });
+            }else{
+                urlstring = "/v1/upload/submit?fid=" + encodeURI(fileid) + "&path=" + encodeURI(path) + "&usr=" + encodeURI(username) + "&pwd=" + btoa(password) + "&host=" + encodeURI(ip) + "&port=" + encodeURI(port);
+                $.ajax({
+                    url: urlstring,
+                    contentType: "application/json; charset=utf-8"
+                }).done(function(r){
+                    if(r.resultcode==0){
+                        uploadlength = r.len;
+                        console.log(r);
+                        alert("uploaded: " + uploadlength + " bytes.");
+                    }else{
+                        alert(r.message);
+                    }
+                });
+            }
+        }
+        </script>
+        
+        <p align="center"> upload text to a file </p>
+        <div id="buttonarea" class="buttonarea" tabindex="1">
+            ip: <input type="text" id="ip" name="ip">
+            port: <input type="text" id="port" name="port" value="22">
+            user: <input type="text" id="username" name="username">
+            pass: <input type="text" id="password" name="password">
+            <br>
+            path: <input type="text" id="path" name="path" size="60">
+            <button id="uploadbtn" type="button" class="normalbutton">upload</button>
+        </div>
+        <div class="uploadcontext">
+            <textarea id="Text1" class="multilinetext" name="Text1" cols="80" rows="25"></textarea>
+        </div>
+    </body>
+</html>
+                
