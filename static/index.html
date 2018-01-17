@@ -1,0 +1,312 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <title>web4ssh: terminal </title>
+        <link rel="stylesheet" href="/css/bootstrap.css" type="text/css">
+        <link rel="stylesheet" href="/css/common.css" type="text/css">
+        <script src="/js/jquery.js"></script>
+        <script src="/jquery-ui/jquery-ui.js" type="text/javascript"></script>
+        <script src="/js/popper.js"></script>
+        <script src="/js/bootstrap.js"></script>
+    </head>
+    <body onload="gogogo()">
+        <script>
+        var cmd_keys = [];
+        var connected = 0;
+        var connid    = "";
+        var full_str  = "";
+        
+        var checkit_counter = 0;
+        var MAX_LINES       = 800;
+        
+        function gogogo(){
+            $("#context").bind('keypress', function keypress(e){
+                cmd_keys.push(e.keyCode);
+            });
+            $("#context").bind('keydown', function keydown(e){
+                if (e.keyCode == 9){
+                    // tab key pressed, stop its default action
+                    e.preventDefault();
+                }
+                if (e.ctrlKey){
+                    switch(e.keyCode){
+                        case 67:        // Ctrl + C
+                            cmd_keys.push(3);
+                            break;
+                        case 68:        // Ctrl + D
+                            cmd_keys.push(4);
+                            break;
+                        }
+                }else{
+                    switch(e.keyCode){
+                        case 8:     // backspace
+                        case 9:     // tab
+                        case 33:    // page up
+                        case 34:    // page down
+                        case 35:    // end
+                        case 36:    // home
+                        case 37:    // left
+                        case 38:    // up
+                        case 39:    // right
+                        case 40:    // down
+                        case 45:    // Insert
+                        case 46:    // Delete
+                            cmd_keys.push(e.keyCode);
+                            break;
+                    }
+                }
+            });
+            
+            $("#connectbtn").click(function connect_clicked(event){
+                if (connected > 0)
+                    return;
+                ip   = $("#ip").val();
+                port = $("#port").val();
+                username = $("#username").val();
+                password = $("#password").val();
+                
+                urlstring = "/v1/rest/connect?usr=" + encodeURI(username) + "&pwd=" + btoa(password) + "&host=" + encodeURI(ip) + "&port=" + encodeURI(port);
+                
+                $.ajax({
+                    url: urlstring,
+                    contentType: "application/json; charset=utf-8"
+                }).done(function(r){
+                    if(r.resultcode == 0){
+                        // success
+                        connid = r.connid;
+                        console.log(r);
+                        console.log(connid);
+                        connected = 1;
+                        checkit_counter = 9999;
+                        setTimeout(checkit, 0);
+                    }else{
+                        // failure
+                        alert(r.message);
+                    }
+                });
+            });
+            
+            $("#disconnectbtn").click(function disconnect_clicked(event){
+                if(connected == 0)
+                    return;
+                urlstring = "/v1/rest/disconnect?connid=" + encodeURI(connid);
+                
+                $.ajax({
+                    url: urlstring,
+                    contentType: "application/json; charset=utf-8"
+                }).done(function(r){
+                    if(r.resultcode == 0){
+                        // success
+                        connid = "";
+                        connected = 0;
+                        updatebtnstatus();
+                    }else{
+                        // failure
+                        alert(r.message);
+                    }
+                });
+            });
+            
+            updatebtnstatus();
+        }
+        
+        function checkit(){
+            checkit_counter ++;
+            if(cmd_keys.length == 0 && checkit_counter < 500){
+                setTimeout(checkit, 1);
+                return;
+            }
+            
+            t_array = [];
+            checkit_counter = 0;
+            
+            updatebtnstatus();
+            
+            if(connected == 0){
+                console.log("closed.");
+                return;
+            }
+            
+            while(cmd_keys.length > 0){
+                var c = cmd_keys.shift();
+                t_array.push(c);
+                time_interval = 0;
+            }
+            
+            if(t_array.length > 0){
+                urlstring = "/v1/rest/check?connid=" + encodeURI(connid) + "&keys=" + encodeURI(t_array.toString());
+            }else{
+                urlstring = "/v1/rest/check?connid=" + encodeURI(connid);
+            }
+            
+            $.ajax({
+                url: urlstring,
+                contentType: "application/json; charset=utf-8"
+            }).done(function(r){
+                    if(r.content.length > 0){
+                        addstr(atob(r.content));
+                        checkit_counter = 9999;
+                    }else if(t_array.length > 0){
+                        checkit_counter = 9999;
+                    }
+                    
+                    if(r.closed == 1){
+                        connid = "";
+                        connected = 0;
+                        updatebtnstatus();
+                    }else{
+                        setTimeout(checkit, 0);
+                    }
+            });
+        }
+        
+        function addstr(s){
+            full_str += s;
+            
+            /*
+            var ss = "";
+            
+            for (var i = 0; i < s.length; ++i){
+                ss += s.charCodeAt(i) + ",";
+            }
+            console.log(ss);
+            */
+            
+            full_str = full_str.replace(/\r\n/g, "\n");
+            
+            /*
+            $("#context").children().each(function(index, element){
+                if($(this).attr('class') == "tempText"){
+                    $(this).remove();
+                }
+            });
+            */
+            var lastchild = $("#context").children().last();
+            if(lastchild.attr("class") == "tempText"){
+                lastchild.remove();
+            }
+            
+            var p = -1;
+            trimcontext();
+            
+            /*
+            while((p = full_str.indexOf("\n")) >= 0){
+                $("#context").append("<div class=\"certainText\">" + trimline(full_str.substr(0, p)) + "</div>");
+                full_str = full_str.substr(p + 1);
+                trimcontext();
+            }
+            */
+            full_array = full_str.split("\n");
+            var full_length = full_array.length;
+            
+            if(full_length > MAX_LINES){
+                full_array = full_array.slice(full_length - MAX_LINES);
+            }
+            
+            if(full_length != full_array.length){
+                console.log("full_str reduced from " + full_length + " to " + full_array.length);
+            }
+            
+            full_length = full_array.length;
+            for(var i=0; i < full_length - 1; ++i){
+                $("#context").append("<div class=\"certainText\">" + trimline(full_array[i]) + "</div>");
+                trimcontext();
+            }
+             
+            full_str = full_array[full_length - 1];
+            $("#context").append("<div class=\"tempText\">" + trimline(full_str) + "</div>");
+            trimcontext();
+            $("#context").scrollTop($("#context")[0].scrollHeight);
+        }
+        
+        function trimcontext(){
+            var childrenlist = $("#context").children();
+            
+            if(childrenlist.length >= MAX_LINES){
+                childrenlist.first().remove();
+            }
+            
+            /*
+            while($("#context").children().length >= 800)
+                $("#context").children()[0].remove();
+            */
+        }
+        
+        function trimline(s){
+        
+            var BACKSPACE = "\b\033[K";
+            var p = -1;
+            while((p = s.indexOf(BACKSPACE)) >= 0){
+                s = s.substr(0, p-1) + s.substr(p + BACKSPACE.length, s.length)
+            }
+            
+            // space and bell
+            s = s.replace(/ /g, "&nbsp;").replace(/\07/g, "");
+            
+            /*
+            http://ascii-table.com/ansi-escape-sequences.php
+            http://ascii-table.com/ansi-escape-sequences-vt-100.php
+            */
+            
+            s = s.replace(/\033\[00;31m/g, "<font color=\"RED\">");
+            s = s.replace(/\033\[00;32m/g, "<font color=\"GREEN\">");
+            s = s.replace(/\033\[00;33m/g, "<font color=\"YELLOW\">");
+            s = s.replace(/\033\[00;34m/g, "<font color=\"BLUE\">");
+            s = s.replace(/\033\[00;35m/g, "<font color=\"PURPLE\">");
+            s = s.replace(/\033\[00;36m/g, "<font color=\"CYAN\">");
+            s = s.replace(/\033\[00;37m/g, "<font color=\"LIGHTGRAY\">");
+            
+            s = s.replace(/\033\[01;31m/g, "<font color=\"LRED\">");
+            s = s.replace(/\033\[01;32m/g, "<font color=\"LGREEN\">");
+            s = s.replace(/\033\[01;33m/g, "<font color=\"LYELLOW\">");
+            s = s.replace(/\033\[01;34m/g, "<font color=\"LBLUE\">");
+            s = s.replace(/\033\[01;35m/g, "<font color=\"LPURPLE\">");
+            s = s.replace(/\033\[01;36m/g, "<font color=\"LCYAN\">");
+            s = s.replace(/\033\[01;37m/g, "<font color=\"WHITE\">");
+            
+            s = s.replace(/\033\[0;31m/g, "<font color=\"RED\">");
+            s = s.replace(/\033\[0;32m/g, "<font color=\"GREEN\">");
+            s = s.replace(/\033\[0;33m/g, "<font color=\"YELLOW\">");
+            s = s.replace(/\033\[0;34m/g, "<font color=\"BLUE\">");
+            s = s.replace(/\033\[0;35m/g, "<font color=\"PURPLE\">");
+            s = s.replace(/\033\[0;36m/g, "<font color=\"CYAN\">");
+            s = s.replace(/\033\[0;37m/g, "<font color=\"LIGHTGRAY\">");
+            
+            s = s.replace(/\033\[1;31m/g, "<font color=\"LRED\">");
+            s = s.replace(/\033\[1;32m/g, "<font color=\"LGREEN\">");
+            s = s.replace(/\033\[1;33m/g, "<font color=\"LYELLOW\">");
+            s = s.replace(/\033\[1;34m/g, "<font color=\"LBLUE\">");
+            s = s.replace(/\033\[1;35m/g, "<font color=\"LPURPLE\">");
+            s = s.replace(/\033\[1;36m/g, "<font color=\"LCYAN\">");
+            s = s.replace(/\033\[1;37m/g, "<font color=\"WHITE\">");
+            
+            s = s.replace(/\033\[0m/g, "</font>");
+            s = s.replace(/\033\[m/g, "</font>");
+            
+            return s;
+        }
+        
+        function updatebtnstatus(){
+            if(connected == 1){
+                $("#connectbtn").attr("disabled", true);
+                $("#disconnectbtn").attr("disabled", false);
+            }else{
+                $("#connectbtn").attr("disabled", false);
+                $("#disconnectbtn").attr("disabled", true);
+            }
+        }
+        </script>
+        <p align="center">web4ssh: terminal</p>
+        <div id="buttonarea" class="buttonarea" tabindex="1">
+            ip: <input type="text" id="ip" name="ip">
+            port: <input type="text" id="port" name="port" value="22">
+            user: <input type="text" id="username" name="username">
+            pass: <input type="text" id="password" name="password">
+            <button id="connectbtn" type="button" class="normalbutton">connect</button>
+            <button id="disconnectbtn" type="button" class="normalbutton">disconnect</button>
+        </div>
+        <div id="context" class="context" tabindex="1">
+        </div>
+    </body>
+</html>

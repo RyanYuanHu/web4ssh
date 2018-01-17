@@ -1,0 +1,75 @@
+:root{
+    --contextwidth: 1024px;
+    --contextheight: 600px;
+    --fontcolor: rgba(224,224,224,1);
+    --contextbgcolor: rgba(128, 128, 128, 1);
+}
+
+.normalbutton{
+    position: static;
+    height: 32px;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 32px;
+    background-color: rgba(224, 224, 224, 1);
+    border: solid 0px rgba(32, 32, 32, 1);
+}
+.normalbutton:hover{
+    background-color:rgba(255, 255, 255, 1);
+    color: blue;
+    cursor: pointer;
+}
+.normalbutton:active{
+    line-height: 36px;
+}
+
+.normalbutton:disabled{
+    background-color: rgba(32,32,32,1);
+    color: rgba(224, 224, 224, 1);
+}
+
+.context{
+    position: static;
+    margin: auto;
+    background-color: var(--contextbgcolor);
+    color: var(--fontcolor);
+    width: var(--contextwidth);
+    height: var(--contextheight);
+    border-bottom: solid;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: rgba(64, 64, 64, 1);
+    font-family: "Courier New", "Arial", "Microsoft Yahei", "SimSun", "serif";
+    overflow-y: scroll;
+    word-wrap: break-word;
+}
+
+.uploadcontext{
+    position: static;
+    margin: auto;
+    width: var(--contextwidth);
+    height: var(--contextheight);
+}
+
+.multilinetext{
+    position: static;
+    margin: auto;
+    width: 100%;
+    height: 100%;
+    border-bottom: solid;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: rgba(64,64,64,1);
+    font-family: "Courier New", "Arial", "Microsoft Yahei", "SimSun", "serif";
+    overflow-y: scroll;
+    word-wrap: break-word;
+}
+
+.buttonarea{
+    position: static;
+    margin: auto;
+    z-index: 10;
+    width: var(--contextwidth);
+    font-family: "Courier New", "Arial", "Microsoft Yahei", "SimSun", "serif";
+}
+    

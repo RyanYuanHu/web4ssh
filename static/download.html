@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <title>web4ssh: download </title>
+        <link rel="stylesheet" href="/css/bootstrap.css" type="text/css">
+        <link rel="stylesheet" href="/css/common.css" type="text/css">
+        <script src="/js/jquery.js"></script>
+        <script src="/jquery-ui/jquery-ui.js" type="text/javascript"></script>
+        <script src="/js/popper.js"></script>
+        <script src="/js/bootstrap.js"></script>
+    </head>
+    <body onload="gogogo()">
+        <script>
+        function gogogo(){
+            $("#downloadbtn").click(function download_clicked(event){
+                ip   = $("#ip").val();
+                port = $("#port").val();
+                username = $("#username").val();
+                password = $("#password").val();
+                path = $("#path").val();
+                
+                urlstring = "/v1/download?usr=" + encodeURI(username) + "&pwd=" + btoa(password) + "&host=" + encodeURI(ip) + "&port=" + encodeURI(port) + "&path=" + encodeURI(path);
+                window.location.href = urlstring;
+            });
+        }
+        </script>
+        
+        <p align="center"> download a file </p>
+        <div id="buttonarea" class="buttonarea" tabindex="1">
+            ip: <input type="text" id="ip" name="ip">
+            port: <input type="text" id="port" name="port" value="22">
+            user: <input type="text" id="username" name="username">
+            pass: <input type="text" id="password" name="password">
+            <br>
+            path: <input type="text" id="path" name="path" size="60">
+            <button id="downloadbtn" type="button" class="normalbutton">download</button>
+        </div>
+    </body>
+</html>
+                
